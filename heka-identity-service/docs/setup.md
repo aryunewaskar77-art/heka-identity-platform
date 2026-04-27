@@ -22,7 +22,6 @@ To run Heka Identity Service locally, follow these steps:
    ```bash
    yarn install
    ```
-
 ### Fixing node-gyp issues with Python 3.12
 
 If you encounter `node-gyp` build failures with Python 3.12,
@@ -39,7 +38,6 @@ Downgrade or switch your active Python version to 3.11:
 ```bash
 npm install --python=python3.11
 ```
-
 5. Configure persistent storage. You can find information on how to configure it in the [Persistence](#persistence)
    and [Migrations](#migrations) sections.
 6. Run the server as described in the [Run the app](#run-the-app)
