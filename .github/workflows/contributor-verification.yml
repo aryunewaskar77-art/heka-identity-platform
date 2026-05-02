@@ -1,0 +1,63 @@
+name: Contributor Identity Verification (POC)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  verify-contributor:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      statuses: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify contributor identity
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+
+            // Load verified contributors registry
+            const registry = JSON.parse(
+              fs.readFileSync('verified-contributors.json', 'utf8')
+            );
+
+            const author = context.payload.pull_request.user.login.toLowerCase();
+            const isVerified = registry[author] === true;
+            const sha = context.payload.pull_request.head.sha;
+            const prNumber = context.payload.pull_request.number;
+
+            // Post comment on PR
+            const comment = isVerified
+              ? `## ✅ Contributor Identity Verified\n\n**@${author}** is a verified contributor in the Hiero identity registry.\n\n> This check is a POC demonstration of the contributor verification system proposed for the Hiero project. The full implementation will use Hedera-anchored DIDs and Verifiable Credentials via the Heka Identity Platform.`
+              : `## ❌ Contributor Identity Not Verified\n\n**@${author}** is not yet registered in the Hiero identity registry.\n\n> To get verified, contributors will complete the onboarding flow: GitHub OAuth → GPG key linking → Verifiable Credential issuance via Heka.\n\n> This check is a POC demonstration. The full implementation will use Hedera-anchored DIDs and OID4VP verification.`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: comment
+            });
+
+            // Set commit status
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: sha,
+              state: isVerified ? 'success' : 'failure',
+              context: 'Hiero Identity Verification (POC)',
+              description: isVerified
+                ? `@${author} is a verified Hiero contributor`
+                : `@${author} is not verified — complete onboarding at heka.hiero.org`,
+              target_url: 'https://github.com/hiero-ledger/heka-identity-platform'
+            });
+
+            // Fail the action if not verified (optional)
+            if (!isVerified) {
+              core.setFailed(`Contributor @${author} is not verified.`);
+            }
