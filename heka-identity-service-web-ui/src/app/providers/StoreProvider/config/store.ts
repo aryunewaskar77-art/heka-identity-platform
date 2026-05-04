@@ -47,7 +47,7 @@ export function createReduxStore(
           extraArgument: extraArg,
         },
       }),
-  }) as ReduxStoreWithManager;
+  }) as unknown as ReduxStoreWithManager;
 
   store.reducerManager = reducerManager;
 
